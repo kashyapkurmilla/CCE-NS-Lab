@@ -16,5 +16,12 @@ At time +2.00369s server sent 1024 bytes to 10.1.1.1 port 49153
 At time +2.00737s client received 1024 bytes from 10.1.1.2 port 9
 student@MIT-ICT-LAB3-08:/opt/ns-allinone-3.35/ns-3.35$  
 
- student@MIT-ICT-LAB3-08:/opt/ns-allinone-3.35/ns-3.35$ awk -f pdf.awk l3r1.tr
+student@MIT-ICT-LAB3-08:/opt/ns-allinone-3.35/ns-3.35$ awk -f pdf.awk l3r1.tr
+
+Number of Packet Sent=1.000000  
+Number of Packet Dropped=0.000000  
+Number of Packet Received=1.000000  
+Packet Delivery Fraction (PDF)=100.000000 percent  
+
+
 
