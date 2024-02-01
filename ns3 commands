@@ -16,4 +16,5 @@ At time +2.00369s server sent 1024 bytes to 10.1.1.1 port 49153
 At time +2.00737s client received 1024 bytes from 10.1.1.2 port 9
 student@MIT-ICT-LAB3-08:/opt/ns-allinone-3.35/ns-3.35$  
 
- 
+ student@MIT-ICT-LAB3-08:/opt/ns-allinone-3.35/ns-3.35$ awk -f pdf.awk l3r1.tr
+
