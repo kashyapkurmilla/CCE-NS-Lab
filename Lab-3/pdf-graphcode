@@ -1,0 +1,9 @@
+set terminal png font 'Times-New-Roman,14'
+set output "pdf2.png"
+load "pdf2.png"
+set xrange [0.900:2.0]
+set yrange [95:105]
+set xlabel "-- Time (seconds) -->" offset 0, 0.5
+set ylabel "--- PDF (%)-->" offset 1.0, 0
+plot "graph11" using ($1):($2) title 'Average-PDF' with linespoints ls 1,
+set output

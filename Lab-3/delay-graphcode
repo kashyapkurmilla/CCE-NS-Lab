@@ -1,0 +1,9 @@
+set terminal png font 'Times-New-Roman,14' size 1200,800
+set output "delay2.png"
+load "delay2.png"
+set xrange [0.5000:1.50]
+set yrange [0.003:0.0090]
+set xlabel "-- Time (seconds) -->" offset 0, 0.5
+set ylabel "--- Delay (seconds)-->" offset 1.0, 0
+plot "graph12" using ($1):($2) title 'Average-delay' with linespoints ls 1,
+set output

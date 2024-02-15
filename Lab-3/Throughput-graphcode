@@ -1,0 +1,9 @@
+set terminal png font 'Times-New-Roman,14' size 1200,800
+set output "Throughput2.png"
+load "Throughput2.png"
+set xrange [0.0000:10.0]
+set yrange [0.000:2500000.0]
+set xlabel "-- Time (seconds) -->" offset 0, 0.5
+set ylabel "--- Throughput (bps)-->" offset 1.0, 0
+plot "graph13" using ($1):($2) title 'Average-Throughput' with linespoints ls 1,
+set output
