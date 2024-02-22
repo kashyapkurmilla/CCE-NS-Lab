@@ -1,5 +1,7 @@
 #### To Run a NS3 File
-student@MIT-ICT-LAB3-08:/opt/ns-allinone-3.35/ns-3.35$ **./waf --run scratch/first**
+```
+./waf --run scratch/first
+```
 Waf: Entering directory `/opt/ns-allinone-3.35/ns-3.35/build'
 Waf: Leaving directory `/opt/ns-allinone-3.35/ns-3.35/build'
 Build commands will be stored in build/compile_commands.json
