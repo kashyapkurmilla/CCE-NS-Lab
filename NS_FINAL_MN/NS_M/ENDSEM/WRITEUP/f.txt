@@ -1,0 +1,42 @@
+BEGIN {
+    Packet_count = 0;
+    Aggergate_delay = 0;
+    count = 0;
+    Average_delay = 0;
+}
+
+{
+    action = $1;
+    time = $2;
+    type = $21;
+    pktsize = $28;
+    packet_id = $19;
+
+    if (type == "6") { # Type 6 indicates TCP packet, change to "17" for UDP packet
+        if (action == "+") {
+            if (packet[packet_id] == 0) {
+                packet[packet_id] = 1;
+                start_time[packet_id] = time;
+                Packet_count++;
+            }
+        } else if (action == "r" || action == "d") {
+            if (start_time[packet_id] != 0) {
+                end_time[packet_id] = time;
+                delay = end_time[packet_id] - start_time[packet_id];
+                if (delay > 0) {
+                    Aggergate_delay += delay;
+                    count++;
+                    Average_delay = Aggergate_delay / count;
+                    if (time >= 4 && time <= 12) {
+                        printf("%f\t%f\n", time, Average_delay);
+                    }
+                }
+            }
+        }
+    }
+}
+
+END {
+    printf("Total packets: %d\n", Packet_count);
+    printf("Average delay: %f\n", Average_delay);
+}

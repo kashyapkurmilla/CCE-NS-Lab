@@ -1,0 +1,204 @@
+#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/csma-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/ipv4-global-routing-helper.h"
+#include "ns3/mobility-helper.h"
+#include "ns3/constant-velocity-mobility-model.h"
+#include "ns3/udp-echo-helper.h"
+#include "ns3/mobility-model.h"
+#include "ns3/flow-monitor-helper.h"
+#include "ns3/flow-monitor-module.h"
+#include "ns3/netanim-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/yans-wifi-helper.h"
+
+using namespace ns3;
+
+int main(int argc, char* argv[])
+{
+    CommandLine cmd;
+    bool poisonReverse;
+    cmd.AddValue("poisonReverse", "Enable poison reverse strategy for RIP", poisonReverse);
+    cmd.Parse(argc, argv);
+
+    Time::SetResolution(Time::NS);
+    LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
+    LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
+
+    // Create nodes
+    NodeContainer nodes;
+    nodes.Create(13); // Adding 13 nodes
+/*
+the topology is constructed as lan:200 Mbps,12 ms[n0(30,20),n1(50,20),n2 location is x:30and y:120],n2-n3 point to point nodes [8Mbps,5ms] and n3(50,80) and the wifi nodes I.e,, wireless  are n4[x:70, y:70], n5[x:110,y:20], n6[x:110,y:70],n7[x:110,y:120], n8[x:160,y:70],and n9(190,80) and n10(200,140) point to point nodes [6 Mbps,10ms] and in lan:200Mbps,8ms [n10(200,140),n11(190,25),n12 location is x:210, y:25]
+
+*/
+    // Set up node positions
+    Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator>();
+    positionAlloc->Add(Vector(30, 20, 0.0)); // n0
+    positionAlloc->Add(Vector(50, 20, 0.0)); // n1
+    positionAlloc->Add(Vector(30, 120, 0.0)); // n2
+    positionAlloc->Add(Vector(50, 80, 0.0)); // n3
+    positionAlloc->Add(Vector(70, 70, 0.0)); // n4
+    positionAlloc->Add(Vector(110, 20, 0.0)); // n5
+    positionAlloc->Add(Vector(110, 70, 0.0)); // n6
+    positionAlloc->Add(Vector(110, 120, 0.0)); // n7
+    positionAlloc->Add(Vector(160, 70, 0.0)); // n8
+    positionAlloc->Add(Vector(190, 80, 0.0)); // n9
+    positionAlloc->Add(Vector(200, 140, 0.0)); // n10
+    positionAlloc->Add(Vector(190, 25, 0.0)); // n11
+    positionAlloc->Add(Vector(210, 25, 0.0)); // n12
+
+    MobilityHelper mobility;
+    mobility.SetPositionAllocator(positionAlloc);
+    mobility.SetMobilityModel("ns3::ConstantVelocityMobilityModel");
+
+/*e) Configure the mobility in Node N4, N8 to displace these nodes 20 steps towards Node N6. Displace N7 nodes 20 steps away from the N6 at a speed of 55 Km/hour.
+*/
+// towards : n6-n4 n6-n8   away: n7-n6
+    // Displace nodes N4 and N8 towards Node N6
+    Vector displacementN4 = Vector(110 - 70, 70 - 20, 0.0); // displacement from N4 to N6
+    mobility.Install(nodes.Get(4));
+    Ptr<ConstantVelocityMobilityModel> mobilityModelN4 = nodes.Get(4)->GetObject<ConstantVelocityMobilityModel>();
+    mobilityModelN4->SetVelocity(displacementN4.Normalize() * 20.0); // 20 steps towards N6
+
+    Vector displacementN8 = Vector(110 - 70, 70 - 160, 0.0); // displacement from N8 to N6
+    mobility.Install(nodes.Get(8));
+    Ptr<ConstantVelocityMobilityModel> mobilityModelN8 = nodes.Get(8)->GetObject<ConstantVelocityMobilityModel>();
+    mobilityModelN8->SetVelocity(displacementN8.Normalize() * 20.0); // 20 steps towards N6
+
+    // Displace node N7 away from Node N6 at a speed of 55 Km/hour
+    Vector displacementN7 = Vector(110 - 70, 120 - 70, 0.0); // displacement from N7 to N6
+    displacementN7 = displacementN7.Normalize() * 20.0; // 20 steps away from N6
+    mobility.Install(nodes.Get(7));
+    Ptr<ConstantVelocityMobilityModel> mobilityModelN7 = nodes.Get(7)->GetObject<ConstantVelocityMobilityModel>();
+    mobilityModelN7->SetVelocity(displacementN7 * (55.0 / 3.6)); // Convert Km/hour to m/s
+
+    // Install nodes mobility
+    mobility.Install(nodes);
+
+    // Configure point-to-point links
+    PointToPointHelper p2p;
+    p2p.SetDeviceAttribute("DataRate", StringValue("8Mbps"));
+    p2p.SetChannelAttribute("Delay", StringValue("5ms"));
+    NetDeviceContainer n2n3 = p2p.Install(nodes.Get(2), nodes.Get(3));
+
+    p2p.SetDeviceAttribute("DataRate", StringValue("6Mbps"));
+    p2p.SetChannelAttribute("Delay", StringValue("10ms"));
+    NetDeviceContainer n10n9 = p2p.Install(nodes.Get(10), nodes.Get(9));
+
+    // Configure LAN for nodes 10, 11, and 12
+    CsmaHelper csmaLAN;
+    csmaLAN.SetChannelAttribute("DataRate", StringValue("6Mbps"));
+    csmaLAN.SetChannelAttribute("Delay", StringValue("10ms"));
+    NetDeviceContainer n10n11 = csmaLAN.Install(NodeContainer(nodes.Get(10), nodes.Get(11)));
+    NetDeviceContainer n11n12 = csmaLAN.Install(NodeContainer(nodes.Get(11), nodes.Get(12)));
+
+    // Configure LAN for nodes 0, 1, and 2
+    CsmaHelper csma;
+    csma.SetChannelAttribute("DataRate", StringValue("200Mbps"));
+    csma.SetChannelAttribute("Delay", StringValue("12ms"));
+    NetDeviceContainer n0n1n2 = csma.Install(NodeContainer(nodes.Get(0), nodes.Get(1), nodes.Get(2)));
+
+    // Configure WiFi network
+    YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
+    YansWifiPhyHelper phy = YansWifiPhyHelper::Default();
+    phy.SetChannel(channel.Create());
+
+    WifiHelper wifi;
+    wifi.SetRemoteStationManager("ns3::AarfWifiManager");
+
+    WifiMacHelper mac;
+    Ssid ssid = Ssid("wifi-lan");
+    mac.SetType("ns3::StaWifiMac",
+                "Ssid", SsidValue(ssid),
+                "ActiveProbing", BooleanValue(false));
+
+    NetDeviceContainer wifiStaDevices;
+    wifiStaDevices = wifi.Install(phy, mac, NodeContainer(nodes.Get(4), nodes.Get(5), nodes.Get(6), nodes.Get(7), nodes.Get(8), nodes.Get(9)));
+
+    mac.SetType("ns3::ApWifiMac",
+                "Ssid", SsidValue(ssid));
+    NetDeviceContainer wifiApDevices;
+    wifiApDevices = wifi.Install(phy, mac, NodeContainer(nodes.Get(4), nodes.Get(5), nodes.Get(6), nodes.Get(7), nodes.Get(8), nodes.Get(9)));
+
+    // Install internet stack
+    InternetStackHelper stack;
+    stack.Install(nodes);
+
+    // Assign IP addresses
+    Ipv4AddressHelper address;
+    address.SetBase("10.1.1.0", "255.255.255.0");
+    address.Assign(n2n3);
+
+    address.SetBase("10.1.2.0", "255.255.255.0");
+    address.Assign(n10n9);
+
+    address.SetBase("10.1.3.0", "255.255.255.0");
+    address.Assign(n10n11);
+    address.Assign(n11n12);
+
+    address.SetBase("10.1.4.0", "255.255.255.0");
+    address.Assign(n0n1n2);
+
+    address.SetBase("10.1.5.0", "255.255.255.0");
+    NetDeviceContainer csmaDevices;
+    csmaDevices.Add(n10n11.Get(0));
+    csmaDevices.Add(n10n11.Get(1));
+    csmaDevices.Add(n10n11.Get(2));
+    address.Assign(csmaDevices);
+
+    address.SetBase("10.1.6.0", "255.255.255.0");
+    address.Assign(wifiStaDevices);
+
+    // Populate routing tables
+    Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+/*
+b) The node N12 starts communicating with node NO at the 3rd second and ends its communication at the 11th second using TCP. The application has to generate the packets every 50 milliseconds.
+*/
+    // TCP application: Node 12 communicates with Node 0
+    uint16_t tcpPort = 9;
+    Address sinkAddress(InetSocketAddress(nodes.Get(0)->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal(), tcpPort));
+    PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), tcpPort));
+    ApplicationContainer sinkApps = packetSinkHelper.Install(nodes.Get(0)); // Node 0 as the receiver
+    sinkApps.Start(Seconds(0.0));
+    sinkApps.Stop(Seconds(20.0));
+
+    OnOffHelper tcpOnOff("ns3::TcpSocketFactory", sinkAddress);
+    tcpOnOff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
+    tcpOnOff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+    tcpOnOff.SetAttribute("DataRate", DataRateValue(DataRate("200Mbps")));
+    tcpOnOff.SetAttribute("PacketSize", UintegerValue(1024));
+
+    ApplicationContainer tcpApps = tcpOnOff.Install(nodes.Get(12)); // Node 12
+    tcpApps.Start(Seconds(3.0));
+    tcpApps.Stop(Seconds(11.0));
+
+/*
+c)
+The node N9 starts communicating to node N3 at 1" second and ends its communication at 5th second using the UDP application. (No reply packet)
+*/
+
+    // UDP application: Node 9 communicates with Node 3
+    uint16_t udpPort = 9;
+    UdpEchoClientHelper udpClient(nodes.Get(3)->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal(), udpPort);
+    udpClient.SetAttribute("MaxPackets", UintegerValue(100)); // Send 100 packets
+    udpClient.SetAttribute("Interval", TimeValue(Seconds(0.05))); // 50 ms between packets
+    udpClient.SetAttribute("PacketSize", UintegerValue(1024));
+
+    ApplicationContainer udpApps = udpClient.Install(nodes.Get(9)); // Node 9
+    udpApps.Start(Seconds(1.0));
+    udpApps.Stop(Seconds(5.0));
+
+    // Enable tracing
+    AsciiTraceHelper ascii;
+    csma.EnableAsciiAll(ascii.CreateFileStream("ccea.tr"));
+    AnimationInterface anim("ccea.xml");
+
+    Simulator::Run();
+    Simulator::Destroy();
+
+    return 0;
+}

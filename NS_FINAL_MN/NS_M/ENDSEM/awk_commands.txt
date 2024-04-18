@@ -1,0 +1,7 @@
+./waf --run scratch/first
+awk -f pdf.awk l3r1.tr
+awk -f pdf-graph.awk l3q1.tr > abc
+gnuplot pdf-graphcode
+awk -f delay-graph.awk l5q1.tr
+awk -f delay-graph.awk l5q1.tr > hhh
+gnuplot delay-graphcode
